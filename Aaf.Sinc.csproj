@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Aaf.Sinc</RootNamespace>
-    <AssemblyName>Aaf.Sinc</AssemblyName>
+    <AssemblyName>ASinc</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -65,14 +65,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Core\Boradcast.cs" />
-    <Compile Include="Core\DestinationFolder.cs" />
-    <Compile Include="Core\DirectoryCheck.cs" />
-    <Compile Include="Core\DirectoryList.cs" />
-    <Compile Include="Core\FileDetails.cs" />
-    <Compile Include="Core\FileList.cs" />
-    <Compile Include="Core\FileSync.cs" />
-    <Compile Include="Core\FolderSync.cs" />
+    <Compile Include="FileWatcher\FileWatcher.cs" />
+    <Compile Include="FileWatcher\WatcherProcess.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs">
@@ -80,9 +74,27 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Core\SendFile.cs" />
-    <Compile Include="Core\SourceFolder.cs" />
-    <Compile Include="Core\Transfer.cs" />
+    <Compile Include="SharpConfig\Comment.cs" />
+    <Compile Include="SharpConfig\Configuration.cs" />
+    <Compile Include="SharpConfig\Configuration.Deserialization.cs" />
+    <Compile Include="SharpConfig\Configuration.Parsing.cs" />
+    <Compile Include="SharpConfig\Configuration.Serialization.cs" />
+    <Compile Include="SharpConfig\ConfigurationElement.cs" />
+    <Compile Include="SharpConfig\IgnoreAttribute.cs" />
+    <Compile Include="SharpConfig\ParserException.cs" />
+    <Compile Include="SharpConfig\Section.cs" />
+    <Compile Include="SharpConfig\Setting.cs" />
+    <Compile Include="SharpConfig\SettingArrayEnumerator.cs" />
+    <Compile Include="SharpConfig\SettingValueCastException.cs" />
+    <Compile Include="Transport\ChatSession.cs" />
+    <Compile Include="Transport\Broadcast.cs" />
+    <Compile Include="Transport\LanSocket.cs" />
+    <Compile Include="Transport\NodeHouse.cs" />
+    <Compile Include="Transport\Protocol.cs" />
+    <Compile Include="Transport\FileDispatcher.cs" />
+    <Compile Include="Transport\UdpThread.cs" />
+    <Compile Include="Utils\ConsoleExtensions.cs" />
+    <Compile Include="Utils\NativeMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -106,7 +118,14 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="app.ico" />
+    <Content Include=".gitattributes" />
+    <Content Include=".gitignore" />
+    <Content Include="app.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Include="Config\Params.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

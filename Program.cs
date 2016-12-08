@@ -1,8 +1,11 @@
-﻿using System;
-using System.Configuration;
+﻿using Aaf.Sinc.SharpConfig;
+using Aaf.Sinc.Transport;
+using Aaf.Sinc.Utils;
+using System;
 using System.Drawing;
 using System.IO;
-using System.Runtime.InteropServices;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -10,33 +13,53 @@ namespace Aaf.Sinc
 {
     internal class Program
     {
-        public static NotifyIcon notificationIcon;
+        private const string TITLE = "ASinc";
+        private const string CopyRight = "Power by Ola Chan. Details at http://chenzheng.com";
+        private const string PARAMS_CONFIG_FILE = "Config\\params.ini";
 
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        private static extern IntPtr GetConsoleWindow();
+        private static NotifyIcon notificationIcon;
 
-        private static IntPtr ThisConsole = GetConsoleWindow();
+        /// <summary>
+        /// 0 - SW_HIDE - Hides the window and activates another window.
+        /// </summary>
+        private static Int32 showWindow = 1;
 
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        private static string sourceDir = string.Empty;
+        private static bool isMaster = false;
+        private static IPAddress selfIP = null;
 
-        private static Int32 showWindow = 1; //0 - SW_HIDE - Hides the window and activates another window.
+        /// <summary>
+        /// 定义作为服务器端接受信息套接字
+        /// </summary>
+        public static Socket socketReceive = null;
 
-        private const string CopyRight = "Power by Ola Chan. Details at http://znzs.com";
+        /// <summary>
+        /// 定义作为客户端发送信息套接字
+        /// </summary>
+        public static Socket socketSent = null;
 
-        private static Client client = null;
+        /// <summary>
+        /// 定义接受信息的IP地址和端口号
+        /// </summary>
+        public static IPEndPoint ipReceive = null;
 
-        private static Server server = null;
+        /// <summary>
+        /// 定义发送信息的IP地址和端口号
+        /// </summary>
+        public static IPEndPoint ipSent = null;
 
-        private static string sourcePath = AppDomain.CurrentDomain.BaseDirectory;
+        /// <summary>
+        /// 定义接受信息的套接字
+        /// </summary>
+        public static Socket chat = null;
 
-        private static string destPath = AppDomain.CurrentDomain.BaseDirectory;
+        //定义是否封装
+        public static string pack = "0";
 
-        private static string filter = ConfigurationManager.AppSettings["FileFilter"];
-
+        [STAThread]
         private static void Main(string[] args)
         {
-            Console.WriteLine(CopyRight);
+            CopyRight.Verbose();
 
             new Thread(
             delegate ()
@@ -57,77 +80,158 @@ namespace Aaf.Sinc
                 Application.Run();
             }).Start();
 
-            var isServer = true;
-            bool.TryParse(ConfigurationManager.AppSettings["IsServer"], out isServer);
+            Console.Title = TITLE;
+            NativeMethods.DisableCloseButton(Console.Title);
 
-            if (isServer)
-                StartServer();
-            else
-                StartClient();
+            // Some biolerplate to react to close window event, CTRL-C, kill, etc
+            NativeMethods.handler += new NativeMethods.AppEventHandler(NativeMethods.Handler);
+            NativeMethods.SetConsoleCtrlHandler(NativeMethods.handler, true);
+            "CTRL-C to stop service.".Warn();
+
+            Init();
+
+            Console.ReadLine();
         }
 
-        private static void StartClient()
+        private static void Init()
         {
-            server = new Server(Boradcast.GetLocalIP());
-            var stateTimer = new System.Threading.Timer((s) =>
+            var cfg = Configuration.LoadFromFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, PARAMS_CONFIG_FILE));
+            sourceDir = cfg["General"]["SourceDir"].StringValue;
+            if (string.IsNullOrEmpty(sourceDir) || sourceDir == ".") sourceDir = AppDomain.CurrentDomain.BaseDirectory;
+            isMaster = cfg["General"]["IsMaster"].BoolValue;
+
+            if (isMaster)
             {
-                if (!server.isServerConected)
-                    Boradcast.Send();
-            }, null, 0, 3000);
+                var fileWatcher = new FileWatcher(sourceDir, "*.*");
+                fileWatcher.OnChanged += new FileSystemEventHandler(OnChanged);
+                fileWatcher.OnCreated += new FileSystemEventHandler(OnCreated);
+                fileWatcher.OnRenamed += new RenamedEventHandler(OnRenamed);
+                fileWatcher.OnDeleted += new FileSystemEventHandler(OnDeleted);
+                fileWatcher.Start();
+            }
 
-            server.startServer();
+            selfIP = Protocol.LocalIP;
+
+            var startUdpThread = new UdpThread();
+            var tUdpThread = new Thread(new ThreadStart(startUdpThread.Start));
+            tUdpThread.IsBackground = true;
+            tUdpThread.Start();
+
+            var broadCast = new Broadcast();
+            var tBroadCast = new Thread(new ThreadStart(broadCast.Send));
+            tBroadCast.IsBackground = true;
+            tBroadCast.Start();
+
+            var receive = new Thread(new ThreadStart(Receive));
+            receive.IsBackground = true;
+            receive.Start();
         }
 
-        private static void StartServer()
+        /// <summary>
+        /// 处理接受到的信息, 分别对文件和普通消息进行处理
+        /// </summary>
+        private static void Receive()
         {
-            //source
-            var hostIP = string.Empty;
-            Boradcast.ReceiveListener(out hostIP);
-            client = new Client(hostIP, () =>
+            try
             {
-                // Create a new FileSystemWatcher and set its properties.
-                FileSystemWatcher watcher = new FileSystemWatcher();
-                watcher.Path = sourcePath;
-                /* Watch for changes in LastAccess and LastWrite times, and
-                   the renaming of files or directories. */
-                watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite
-                   | NotifyFilters.FileName | NotifyFilters.DirectoryName;
-                // Only watch text files.
-                watcher.Filter = filter;
-                watcher.IncludeSubdirectories = true;
+                //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
+                socketReceive = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                // Add event handlers.
-                watcher.Changed += new FileSystemEventHandler(OnChanged);
-                watcher.Created += new FileSystemEventHandler(OnChanged);
-                watcher.Deleted += new FileSystemEventHandler(OnDeleted);
-                watcher.Renamed += new RenamedEventHandler(OnRenamed);
+                //获取本机IP地址并设置接受信息的端口
+                ipReceive = new IPEndPoint(selfIP, Protocol.RECEIVE_MSG_PORT);
 
-                // Begin watching.
-                watcher.EnableRaisingEvents = true;
-            });
+                //将本机IP地址和接受端口绑定到接受套接字
+                socketReceive.Bind(ipReceive);
 
-            // Wait for the user to quit the program.
-            Console.WriteLine("Press \'q\' to quit.");
-            while (Console.Read() != 'q') ;
+                //监听端口, 并设置监听缓存大小为1024byte
+                socketReceive.Listen(Protocol.SOCKET_BUFFER_SIZE);
+            }
+            catch (Exception err)
+            {
+                err.Message.Error();
+            }
+
+            //定义接受信息时缓冲区
+            var buff = new byte[Protocol.SOCKET_BUFFER_SIZE];
+
+            //连续接受客户端发送过来的信息
+            while (true)
+            {
+                //定义一个chat套接字用来接受信息
+                var chat = socketReceive.Accept();
+
+                //定义一个处理信息的对象
+                var cs = new ChatSession(chat, sourceDir);
+
+                //定义一个新的线程用来接受其他主机发送的信息
+                var newThread = new Thread(new ThreadStart(cs.Start));
+
+                //启动新的线程
+                newThread.Start();
+            }
         }
 
-        private static void OnRenamed(object sender, RenamedEventArgs e)
+        
+        private static void OnCreated(object source, FileSystemEventArgs e)
         {
-            Console.WriteLine("File: {0} renamed to {1}", e.OldFullPath, e.FullPath);
-            if (client.isServerConected) client.sendFile(e.FullPath, destPath, sourcePath);
+            ConsoleExtensions.Time();
+            string.Format("{0} was created", e.FullPath).Info();
+            Send(e.FullPath);
         }
 
-        private static void OnChanged(object sender, FileSystemEventArgs e)
+        private static void OnChanged(object source, FileSystemEventArgs e)
         {
-            Console.WriteLine("File: " + e.FullPath + " " + e.ChangeType);
-            if (client.isServerConected) client.sendFile(e.FullPath, destPath, sourcePath);
+            ConsoleExtensions.Time();
+            string.Format("{0} was changed", e.FullPath).Info();
+            Send(e.FullPath);
         }
 
-        private static void OnDeleted(object sender, FileSystemEventArgs e)
+        private static void OnDeleted(object source, FileSystemEventArgs e)
         {
-            Console.WriteLine("File: " + e.FullPath + " " + e.ChangeType);
-            //if (client.isServerConected) client.sendFile(e.FullPath, destPath, sourcePath);
+            ConsoleExtensions.Time();
+            string.Format("{0} was deleted", e.FullPath).Info();
+            Send(e.FullPath,Protocol.DEL_FILE_CMD);
         }
+
+        private static void OnRenamed(object source, RenamedEventArgs e)
+        {
+            ConsoleExtensions.Time();
+            string.Format("{0} was renamed to {1}", e.OldFullPath, e.FullPath).Info();
+            Send(e.FullPath+","+e.OldFullPath, Protocol.REN_FILE_CMD);
+        }
+
+        public static void Send(string path,string cmd="ADD")
+        {
+            var ip = string.Empty;
+            LanSocket socketConnet = null;
+            FileDispatcher sentFile = null;
+            Thread tConnection = null;
+            Thread tSentFile = null;
+            var ips = NodeHouse.IPs;
+            for (int i = 0; i < ips.Count; i++)
+            {
+                ip = ips[i];
+                if (ip == selfIP.ToString()) continue;
+
+                //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
+                socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+                //设置服务器IP地址和端口
+                ipSent = new IPEndPoint(IPAddress.Parse(ip), Protocol.RECEIVE_MSG_PORT);
+
+                //与服务器进行连接
+                socketConnet = new LanSocket(socketSent, ipSent);
+                tConnection = new Thread(new ThreadStart(socketConnet.Connect));
+                tConnection.Start();
+                Thread.Sleep(100);
+
+                //将要发送的文件加上"DAT"标识符
+                sentFile = new FileDispatcher(sourceDir, path, socketSent,cmd);
+                tSentFile = new Thread(new ThreadStart(sentFile.Sent));
+                tSentFile.Start();
+            }
+        }
+
 
         private static void notificationIcon_MouseClick(object sender, MouseEventArgs e)
         {
@@ -135,7 +239,7 @@ namespace Aaf.Sinc
             {
                 //reserve right click for context menu
                 showWindow = ++showWindow % 2;
-                ShowWindow(ThisConsole, showWindow);
+                NativeMethods.ShowWindow(NativeMethods.GetConsoleWindow(), showWindow);
             }
         }
 
