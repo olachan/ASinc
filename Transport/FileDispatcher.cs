@@ -32,7 +32,7 @@ namespace Aaf.Sinc.Transport
         public void Sent()
         {
             var msg = string.Empty;
-            if (cmd == Protocol.REN_FILE_CMD)
+            if ( Protocol.REN_FILE_CMD==cmd)
             {
                 msg = string.Join(",",path.Split(',').Select(s=>s.Substring(dir.Length)));
             }
@@ -45,7 +45,7 @@ namespace Aaf.Sinc.Transport
 
             //将 "msg" 转化为字节流的形式进行传送
             socketSent.Send(Encoding.Default.GetBytes(msg));
-            if (cmd == Protocol.SEND_FILE_CMD)
+            if (Protocol.SEND_FILE_CMD== cmd)
             {
                 //定义一个读文件流
                 var read = new FileStream(path, FileMode.Open, FileAccess.Read);

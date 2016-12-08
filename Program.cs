@@ -161,7 +161,7 @@ namespace Aaf.Sinc
                 var chat = socketReceive.Accept();
 
                 //定义一个处理信息的对象
-                var cs = new ChatSession(chat, sourceDir);
+                var cs = new Session(chat, sourceDir);
 
                 //定义一个新的线程用来接受其他主机发送的信息
                 var newThread = new Thread(new ThreadStart(cs.Start));

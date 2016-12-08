@@ -10,7 +10,7 @@ namespace Aaf.Sinc.Transport
     /// <summary>
     /// 聊天会话
     /// </summary>
-    internal class ChatSession
+    internal class Session
     {
         private static string fileName = string.Empty;
         private Socket chat;
@@ -22,7 +22,7 @@ namespace Aaf.Sinc.Transport
         /// </summary>
         /// <param name="chat"></param>
         /// <param name="dir"></param>
-        public ChatSession(Socket chat,string dir)
+        public Session(Socket chat,string dir)
         {
             this.chat = chat;
             this.dir = dir;
@@ -45,7 +45,7 @@ namespace Aaf.Sinc.Transport
                 var msg = Encoding.Default.GetString(buff, 0, len);
                 pack = msg.Substring(0, 1);
                 var cmd = msg.Substring(1, 3);
-                if (cmd == Protocol.SEND_FILE_CMD)
+                if (Protocol.SEND_FILE_CMD == cmd)
                 {
                     msg = msg.Substring(4);
                     fileName = dir+msg;
@@ -54,14 +54,14 @@ namespace Aaf.Sinc.Transport
                     if (!Directory.Exists(fi.DirectoryName)) Directory.CreateDirectory(fi.DirectoryName);
                     Receive(ep, buff, ref len, ref msg);
                 }
-                else if (cmd == Protocol.DEL_FILE_CMD)
+                else if (Protocol.DEL_FILE_CMD == cmd)
                 {
                     msg = msg.Substring(4);
                     fileName = dir + msg;
                     string.Format("-{0}.", fileName).Info();
                     if (File.Exists(fileName)) File.Delete(fileName);
                 }
-                else if (cmd == Protocol.REN_FILE_CMD)
+                else if ( Protocol.REN_FILE_CMD == cmd)
                 {
                     msg = msg.Substring(4);
                     var arr = msg.Split(',');
@@ -74,7 +74,7 @@ namespace Aaf.Sinc.Transport
                         File.Move(oldFileName, fileName);
                     }
                 }
-                else if (cmd == Protocol.SEND_TEXT_CMD)
+                else if (Protocol.SEND_TEXT_CMD == cmd)
                 {
                     msg = Encoding.Default.GetString(buff);
                 }
