@@ -14,12 +14,12 @@ namespace Aaf.Sinc.Transport
         /// <summary>
         /// 广播端口
         /// </summary>
-        public const int BROADCAST_PORT = 7999;
+        public const int BROADCAST_PORT = 9527;
 
         /// <summary>
         /// 接受信息的端口
         /// </summary>
-        public const int RECEIVE_MSG_PORT = 8001;
+        public const int RECEIVE_MSG_PORT = 9528;
 
         /// <summary>
         /// 广播心跳间隔
