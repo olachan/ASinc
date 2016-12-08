@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Aaf.Sinc</RootNamespace>
     <AssemblyName>Aaf.Sinc</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <PublishUrl>publish\</PublishUrl>
@@ -27,6 +27,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -64,14 +65,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Boradcast.cs" />
-    <Compile Include="DestinationFolder.cs" />
-    <Compile Include="DirectoryCheck.cs" />
-    <Compile Include="DirectoryList.cs" />
-    <Compile Include="FileDetails.cs" />
-    <Compile Include="FileList.cs" />
-    <Compile Include="FileSync.cs" />
-    <Compile Include="FolderSync.cs" />
+    <Compile Include="Core\Boradcast.cs" />
+    <Compile Include="Core\DestinationFolder.cs" />
+    <Compile Include="Core\DirectoryCheck.cs" />
+    <Compile Include="Core\DirectoryList.cs" />
+    <Compile Include="Core\FileDetails.cs" />
+    <Compile Include="Core\FileList.cs" />
+    <Compile Include="Core\FileSync.cs" />
+    <Compile Include="Core\FolderSync.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs">
@@ -79,9 +80,9 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="SendFile.cs" />
-    <Compile Include="SourceFolder.cs" />
-    <Compile Include="Transfer.cs" />
+    <Compile Include="Core\SendFile.cs" />
+    <Compile Include="Core\SourceFolder.cs" />
+    <Compile Include="Core\Transfer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
