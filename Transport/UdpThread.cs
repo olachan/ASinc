@@ -41,11 +41,11 @@ namespace Aaf.Sinc.Transport
                             WorkGroup = arr[3]
                         };
 
-                        if (NodeHouse.Add(node))
+                        if (NodeManager.Add(node))
                         {
                             string.Format("{0} online.", node).Info();
 
-                            string.Format("Node count:{0}", NodeHouse.Count).Info();
+                            string.Format("Node count:{0}", NodeManager.Count).Info();
                         }
                     }
                     catch

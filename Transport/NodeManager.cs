@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Aaf.Sinc.Transport
 {
-    public static class NodeHouse
+    public static class NodeManager
     {
         private static ConcurrentDictionary<string, Node> nodes = new ConcurrentDictionary<string, Node>();
 

@@ -89,7 +89,7 @@
     <Compile Include="Transport\Session.cs" />
     <Compile Include="Transport\Broadcast.cs" />
     <Compile Include="Transport\LanSocket.cs" />
-    <Compile Include="Transport\NodeHouse.cs" />
+    <Compile Include="Transport\NodeManager.cs" />
     <Compile Include="Transport\Protocol.cs" />
     <Compile Include="Transport\FileDispatcher.cs" />
     <Compile Include="Transport\UdpThread.cs" />

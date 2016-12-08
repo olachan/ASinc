@@ -204,10 +204,10 @@ namespace Aaf.Sinc
         {
             var ip = string.Empty;
             LanSocket socketConnet = null;
-            FileDispatcher sentFile = null;
+            FileDispatcher fileDispatcher = null;
             Thread tConnection = null;
             Thread tSentFile = null;
-            var ips = NodeHouse.IPs;
+            var ips = NodeManager.IPs;
             for (int i = 0; i < ips.Count; i++)
             {
                 ip = ips[i];
@@ -226,8 +226,8 @@ namespace Aaf.Sinc
                 Thread.Sleep(100);
 
                 //将要发送的文件加上"DAT"标识符
-                sentFile = new FileDispatcher(sourceDir, path, socketSent,cmd);
-                tSentFile = new Thread(new ThreadStart(sentFile.Sent));
+                fileDispatcher = new FileDispatcher(sourceDir, path, socketSent,cmd);
+                tSentFile = new Thread(new ThreadStart(fileDispatcher.Sent));
                 tSentFile.Start();
             }
         }
