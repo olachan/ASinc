@@ -119,9 +119,12 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include=".asignore" />
     <Content Include=".gitattributes" />
     <Content Include=".gitignore" />
-    <Content Include="addto-startup.vbs" />
+    <Content Include="addto-startup.vbs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="app.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

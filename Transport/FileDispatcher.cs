@@ -11,6 +11,7 @@ namespace Aaf.Sinc.Transport
         private Socket socketSent;
         private string dir;
         private string cmd;
+        private string type;
 
         /// <summary>
         /// 构造
@@ -18,12 +19,13 @@ namespace Aaf.Sinc.Transport
         /// <param name="dir"></param>
         /// <param name="path"></param>
         /// <param name="socketSent"></param>
-        public FileDispatcher(string dir, string path, Socket socketSent, string cmd = "ADD")
+        public FileDispatcher(string dir, string path, Socket socketSent, string cmd = "ADD",string type="|F")
         {
             this.dir = dir;
             this.path = path;
             this.socketSent = socketSent;
             this.cmd = cmd;
+            this.type = type;
         }
 
         /// <summary>
@@ -32,21 +34,24 @@ namespace Aaf.Sinc.Transport
         public void Sent()
         {
             var msg = string.Empty;
-            if ( Protocol.REN_FILE_CMD==cmd)
+            if (Protocol.REN_FILE_CMD == cmd)
             {
-                msg = string.Join(",",path.Split(',').Select(s=>s.Substring(dir.Length)));
+                msg = string.Join(",", path.Split(',').Select(s => s.Substring(dir.Length)+type));
             }
             else
-            {
-                msg = path.Substring(dir.Length);
+            {      
+                msg = path.Substring(dir.Length) + type;
             }
 
             msg = string.Format("0{0} {1}", cmd, msg);
 
             //将 "msg" 转化为字节流的形式进行传送
             socketSent.Send(Encoding.Default.GetBytes(msg));
-            if (Protocol.SEND_FILE_CMD== cmd)
+            if (Protocol.SEND_FILE_CMD == cmd)
             {
+                var attr = File.GetAttributes(path);
+                if (attr.HasFlag(FileAttributes.Directory)) return;
+                //if (!File.Exists(path)) return;
                 //定义一个读文件流
                 var read = new FileStream(path, FileMode.Open, FileAccess.Read);
 
@@ -59,12 +64,14 @@ namespace Aaf.Sinc.Transport
                     socketSent.Send(buff, 0, len, SocketFlags.None);
                 }
 
+                read.Close();
+
                 //将要发送信息的最后加上"END"标识符
                 msg = Protocol.SEND_FILE_COMPLETE_CMD;
 
                 //将 "msg" 发送
                 socketSent.Send(Encoding.Default.GetBytes(msg));
-                read.Close();
+               
             }
 
             socketSent.Close();

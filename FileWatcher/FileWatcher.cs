@@ -25,7 +25,9 @@ namespace Aaf.Sinc
         /// 构造函数
         /// </summary>
         /// <param name="path">要监控的路径</param>
-        public FileWatcher(string path, string filter)
+        /// <param name="filter">过滤条件</param>
+        /// <param name="includeSubdirectories">是否包含子目录</param>
+        public FileWatcher(string path, string filter,bool includeSubdirectories=false)
         {
             if (!Directory.Exists(path))
             {
@@ -36,7 +38,7 @@ namespace Aaf.Sinc
 
             fsWather = new FileSystemWatcher(path);
             // 是否监控子目录
-            fsWather.IncludeSubdirectories = false;
+            fsWather.IncludeSubdirectories = includeSubdirectories;
             fsWather.Filter = filter;
             fsWather.Renamed += new RenamedEventHandler(fsWather_Renamed);
             fsWather.Changed += new FileSystemEventHandler(fsWather_Changed);
@@ -69,7 +71,7 @@ namespace Aaf.Sinc
         {
             lock (hstbWather)
             {
-                hstbWather.Add(e.FullPath, e);
+                if (!hstbWather.ContainsKey(e.FullPath)) hstbWather.Add(e.FullPath, e);
             }
 
             WatcherProcess watcherProcess = new WatcherProcess(sender, e);
@@ -88,7 +90,7 @@ namespace Aaf.Sinc
         {
             lock (hstbWather)
             {
-                hstbWather.Add(e.FullPath, e);
+                if (!hstbWather.ContainsKey(e.FullPath)) hstbWather.Add(e.FullPath, e);
             }
             WatcherProcess watcherProcess = new WatcherProcess(sender, e);
             watcherProcess.OnCompleted += new Completed(WatcherProcess_OnCompleted);
@@ -106,7 +108,7 @@ namespace Aaf.Sinc
         {
             lock (hstbWather)
             {
-                hstbWather.Add(e.FullPath, e);
+                if(!hstbWather.ContainsKey(e.FullPath)) hstbWather.Add(e.FullPath, e);
             }
             WatcherProcess watcherProcess = new WatcherProcess(sender, e);
             watcherProcess.OnCompleted += new Completed(WatcherProcess_OnCompleted);

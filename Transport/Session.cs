@@ -1,5 +1,4 @@
 ﻿using Aaf.Sinc.Utils;
-using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -22,7 +21,7 @@ namespace Aaf.Sinc.Transport
         /// </summary>
         /// <param name="chat"></param>
         /// <param name="dir"></param>
-        public Session(Socket chat,string dir)
+        public Session(Socket chat, string dir)
         {
             this.chat = chat;
             this.dir = dir;
@@ -39,36 +38,63 @@ namespace Aaf.Sinc.Transport
             //设置
             byte[] buff = new byte[Protocol.SOCKET_BUFFER_SIZE];
             int len;
+            bool isDir = false;
             while ((len = chat.Receive(buff)) != 0)
             {
                 dir.Verbose();
                 var msg = Encoding.Default.GetString(buff, 0, len);
                 pack = msg.Substring(0, 1);
                 var cmd = msg.Substring(1, 3);
+                msg = msg.Substring(4);
                 if (Protocol.SEND_FILE_CMD == cmd)
                 {
-                    msg = msg.Substring(4);
-                    fileName = dir+msg;
+                    var arr = msg.Split('|');
+                    fileName = dir + arr[0];
                     string.Format("+{0}.", fileName).Info();
+                    if (File.Exists(fileName))
+                        isDir = File.GetAttributes(fileName).HasFlag(FileAttributes.Directory);
+                    if (isDir) return;
+                    if (arr[1] == "D")
+                    {
+                        if(!Directory.Exists(fileName)) Directory.CreateDirectory(fileName);
+                        return;
+                    }
                     var fi = new FileInfo(fileName);
                     if (!Directory.Exists(fi.DirectoryName)) Directory.CreateDirectory(fi.DirectoryName);
                     Receive(ep, buff, ref len, ref msg);
                 }
                 else if (Protocol.DEL_FILE_CMD == cmd)
                 {
-                    msg = msg.Substring(4);
-                    fileName = dir + msg;
+                    var arr = msg.Split('|');
+                    fileName = dir + arr[0];
                     string.Format("-{0}.", fileName).Info();
-                    if (File.Exists(fileName)) File.Delete(fileName);
+                    if (File.Exists(fileName))
+                        isDir = File.GetAttributes(fileName).HasFlag(FileAttributes.Directory);
+                    if (isDir)
+                    {
+                        Directory.Delete(fileName);
+                    }
+                    else
+                    {
+                        File.Delete(fileName);
+                    }
                 }
-                else if ( Protocol.REN_FILE_CMD == cmd)
+                else if (Protocol.REN_FILE_CMD == cmd)
                 {
-                    msg = msg.Substring(4);
                     var arr = msg.Split(',');
-                    fileName = dir+arr[0];
-                    var oldFileName= dir+arr[1];
+                    fileName = dir + arr[0].Split('|')[0];
+                    var oldFileName = dir + arr[1].Split('|')[0];
                     string.Format("%{0} to {1}.", oldFileName, fileName).Info();
+
                     if (File.Exists(oldFileName))
+                        isDir = File.GetAttributes(oldFileName).HasFlag(FileAttributes.Directory);
+
+                    if (isDir)
+                    {
+                        if (Directory.Exists(fileName)) Directory.Delete(fileName);
+                        Directory.Move(oldFileName, fileName);
+                    }
+                    else
                     {
                         if (File.Exists(fileName)) File.Delete(fileName);
                         File.Move(oldFileName, fileName);
@@ -91,7 +117,6 @@ namespace Aaf.Sinc.Transport
         /// <param name="msg">命令消息</param>
         private void Receive(IPEndPoint ep, byte[] buff, ref int len, ref string msg)
         {
-           
             var writer = new FileStream(fileName, FileMode.Create, FileAccess.Write);
             while ((len = chat.Receive(buff)) != 0)
             {
@@ -102,7 +127,7 @@ namespace Aaf.Sinc.Transport
                 }
                 writer.Write(buff, 0, len);
             }
-            writer.Write(buff, 0, len);
+            //writer.Write(buff, 0, len);
             writer.Close();
         }
     }

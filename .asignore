@@ -1,0 +1,13 @@
+## ASinc files ignore rules, The following rules are ignored if the file path matches
+
+
+# User-specific files
+Web.config
+redis.config
+weed.config
+mongodb.config
+Logs/*
+tmp/*
+___log.txt
+___redis.log
+log/
