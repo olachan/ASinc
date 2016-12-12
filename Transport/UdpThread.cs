@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Web.Script.Serialization;
 
 namespace Aaf.Sinc.Transport
 {
@@ -17,9 +18,11 @@ namespace Aaf.Sinc.Transport
             var ep = new IPEndPoint(IPAddress.Any, Protocol.BROADCAST_PORT);
             var receiveMsg = string.Empty;
             var cmd = string.Empty;
-            var nodeInfo = string.Empty;
+            var nodeModel = string.Empty;
             byte[] buff = null;
-            string[] arr = null;
+            //string[] arr = null;
+
+            var serializer = new JavaScriptSerializer();
 
             while (true)
             {
@@ -27,30 +30,41 @@ namespace Aaf.Sinc.Transport
                 receiveMsg = Encoding.Default.GetString(buff);
                 //receiveMsg.Verbose();
                 cmd = receiveMsg.Substring(0, 6);
-                nodeInfo = receiveMsg.Substring(6);
+                nodeModel = receiveMsg.Substring(6);
                 if (cmd == Protocol.NODE_STATUS_CMD)
                 {
                     try
                     {
-                        arr = nodeInfo.Split(':');
-                        var node = new Node
-                        {
-                            Name = arr[0],
-                            ComputerName = arr[1],
-                            IP = arr[2],
-                            WorkGroup = arr[3]
-                        };
+                        //arr = nodeModel.Split(':');
+                        //var node = new Node
+                        //{
+                        //    Name = arr[0],
+                        //    ComputerName = arr[1],
+                        //    IP = arr[2],
+                        //    WorkGroup = arr[3]
+                        //};
 
-                        if (NodeManager.Add(node))
-                        {
-                            string.Format("{0} online.", node).Info();
+                        var node = serializer.Deserialize<Node>(nodeModel);
 
+                        if (node.Online )
+                        {
+                            if (NodeManager.Add(node))
+                            {
+                                node.ToString().Info();
+
+                                string.Format("Node count:{0}", NodeManager.Count).Info();
+                            }
+                        }
+                        else{
+                            NodeManager.Remove(node);
+                            node.ToString().Info();
                             string.Format("Node count:{0}", NodeManager.Count).Info();
                         }
+
                     }
                     catch
                     {
-                        "One node offline.".Warn();
+                        "one node err.".Warn();
                     }
                 }
             }

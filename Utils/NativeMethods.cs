@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Aaf.Sinc.Transport;
+using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -35,8 +36,10 @@ namespace Aaf.Sinc.Utils
 
         internal static bool Handler(CtrlType sig)
         {
-            Console.WriteLine("Exiting system due to external CTRL-C, or process kill, or shutdown");
+            Broadcast.Online = false;
+            Thread.Sleep(3000);
 
+            Console.WriteLine("Exiting system due to external CTRL-C, or process kill, or shutdown");
             MessageBox.Show("U are stopping service.", "Warning", MessageBoxButtons.OK);
             Environment.Exit(-1);
             return false;

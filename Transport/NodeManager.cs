@@ -36,10 +36,11 @@ namespace Aaf.Sinc.Transport
         public string IP { get; set; }
         public string Name { get; set; }
         public string WorkGroup { get; set; }
+        public bool Online { get; set; }
 
         public override string ToString()
         {
-            return string.Format("Name:{0},ComputerName:{1},IP:{2},WorkGroup:{3}", Name, ComputerName, IP, WorkGroup);
+            return string.Format("Name:{0},ComputerName:{1},IP:{2},WorkGroup:{3},Online:{4}", Name, ComputerName, IP, WorkGroup,Online);
         }
     }
 }
