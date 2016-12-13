@@ -96,7 +96,7 @@ namespace Aaf.Sinc.Transport
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public static string GetPathAttri(string path)
+        public static string GetPathType(string path)
         {
             if (File.Exists(path) || Directory.Exists(path))
             {

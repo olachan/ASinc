@@ -71,7 +71,7 @@ namespace Aaf.Sinc.Transport
                             var arr = msg.Split('|');
                             fileName = dir + arr[0];
                             string.Format("- {0}", fileName).Info();
-                            var pathType = Protocol.GetPathAttri(fileName);
+                            var pathType = Protocol.GetPathType(fileName);
                             if (Protocol.PATH_TYPE_DIR== pathType)
                             {
                                 Directory.Delete(fileName);
@@ -89,7 +89,7 @@ namespace Aaf.Sinc.Transport
                             var oldFileName = dir + arr[1].Split('|')[0];
                             string.Format("% {0} to {1}", oldFileName, fileName).Info();
 
-                            var pathType = Protocol.GetPathAttri(oldFileName);
+                            var pathType = Protocol.GetPathType(oldFileName);
                             if (Protocol.PATH_TYPE_DIR == pathType)
                             {
                                 if (Directory.Exists(fileName)) Directory.Delete(fileName);

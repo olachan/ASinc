@@ -175,28 +175,28 @@ namespace Aaf.Sinc
         {
             ConsoleExtensions.Time();
             string.Format("{0} was created", e.FullPath).Info();
-            Send(e.FullPath, Protocol.SEND_FILE_CMD, Protocol.GetPathAttri(e.FullPath));
+            Send(e.FullPath, Protocol.SEND_FILE_CMD, Protocol.GetPathType(e.FullPath));
         }
 
         private static void OnChanged(object source, FileSystemEventArgs e)
         {
             ConsoleExtensions.Time();
             string.Format("{0} was changed", e.FullPath).Info();
-            Send(e.FullPath, Protocol.SEND_FILE_CMD, Protocol.GetPathAttri(e.FullPath));
+            Send(e.FullPath, Protocol.SEND_FILE_CMD, Protocol.GetPathType(e.FullPath));
         }
 
         private static void OnDeleted(object source, FileSystemEventArgs e)
         {
             ConsoleExtensions.Time();
             string.Format("{0} was deleted", e.FullPath).Info();
-            Send(e.FullPath, Protocol.DEL_FILE_CMD, Protocol.GetPathAttri(e.FullPath));
+            Send(e.FullPath, Protocol.DEL_FILE_CMD, Protocol.GetPathType(e.FullPath));
         }
 
         private static void OnRenamed(object source, RenamedEventArgs e)
         {
             ConsoleExtensions.Time();
             string.Format("{0} was renamed to {1}", e.OldFullPath, e.FullPath).Info();
-            Send(e.FullPath + "," + e.OldFullPath, Protocol.REN_FILE_CMD, Protocol.GetPathAttri(e.OldFullPath));
+            Send(e.FullPath + "," + e.OldFullPath, Protocol.REN_FILE_CMD, Protocol.GetPathType(e.OldFullPath));
         }
 
         private static void Send(string path, string cmd = "SND", string type = "F")
