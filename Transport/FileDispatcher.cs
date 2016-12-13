@@ -19,7 +19,8 @@ namespace Aaf.Sinc.Transport
         /// <param name="dir"></param>
         /// <param name="path"></param>
         /// <param name="socketSent"></param>
-        public FileDispatcher(string dir, string path, Socket socketSent, string cmd = Protocol.SEND_FILE_CMD, string type = Protocol.PATH_TYPE_FILE)
+        public FileDispatcher(string dir, string path, Socket socketSent, 
+            string cmd = Protocol.SEND_FILE_CMD, string type = Protocol.PATH_TYPE_FILE)
         {
             this.dir = dir;
             this.path = path;
