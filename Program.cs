@@ -2,11 +2,14 @@
 using Aaf.Sinc.Transport;
 using Aaf.Sinc.Utils;
 using System;
+using System.Collections.Concurrent;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Aaf.Sinc
@@ -24,6 +27,11 @@ namespace Aaf.Sinc
         /// </summary>
         private static Int32 showWindow = 1;
 
+        /// <summary>
+        /// 任务队列
+        /// </summary>
+        private static ConcurrentQueue<Job> Jobs = new ConcurrentQueue<Job>();
+
         private static string sourceDir = string.Empty;
         private static bool isMaster = false;
         private static IPAddress selfIP = null;
@@ -34,14 +42,14 @@ namespace Aaf.Sinc
         public static Socket socketReceive = null;
 
         /// <summary>
-        /// 定义作为客户端发送信息套接字
-        /// </summary>
-        public static Socket socketSent = null;
-
-        /// <summary>
         /// 定义接受信息的IP地址和端口号
         /// </summary>
         public static IPEndPoint ipReceive = null;
+
+        /// <summary>
+        /// 定义作为客户端发送信息套接字
+        /// </summary>
+        public static Socket socketSent = null;
 
         /// <summary>
         /// 定义发送信息的IP地址和端口号
@@ -52,9 +60,6 @@ namespace Aaf.Sinc
         /// 定义接受信息的套接字
         /// </summary>
         public static Socket chat = null;
-
-        //定义是否封装
-        public static string pack = "0";
 
         [STAThread]
         private static void Main(string[] args)
@@ -93,6 +98,9 @@ namespace Aaf.Sinc
             Console.ReadLine();
         }
 
+        /// <summary>
+        /// 根据配置初始化
+        /// </summary>
         private static void Init()
         {
             var cfg = Configuration.LoadFromFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, PARAMS_CONFIG_FILE));
@@ -108,6 +116,13 @@ namespace Aaf.Sinc
                 fileWatcher.OnRenamed += new RenamedEventHandler(OnRenamed);
                 fileWatcher.OnDeleted += new FileSystemEventHandler(OnDeleted);
                 fileWatcher.Start();
+
+                var jobThread = new Thread(() =>
+                  {
+                      RunJob();
+                  });
+
+                jobThread.Start();
             }
 
             selfIP = Protocol.LocalIP;
@@ -128,7 +143,7 @@ namespace Aaf.Sinc
         }
 
         /// <summary>
-        /// 处理接受到的信息, 分别对文件和普通消息进行处理
+        /// 处理接受到的信息
         /// </summary>
         private static void Receive()
         {
@@ -199,42 +214,88 @@ namespace Aaf.Sinc
             Send(e.FullPath + "," + e.OldFullPath, Protocol.REN_FILE_CMD, Protocol.GetPathType(e.OldFullPath));
         }
 
-        private static void Send(string path, string cmd = Protocol.SEND_FILE_CMD, 
+        private static void Send(string path, string cmd = Protocol.SEND_FILE_CMD,
             string type = Protocol.PATH_TYPE_FILE)
         {
             if (IgnoreHepler.IsMatch(path))
             {
-                string.Format("{} was matched by ignore rules. so syn pass.",path).Warn();
+                string.Format("{0} was matched by ignore rules. so syn pass.", path).Warn();
                 return;
             }
 
-            var ip = string.Empty;
-            LanSocket socketConnet = null;
-            FileDispatcher fileDispatcher = null;
-            Thread tConnection = null;
-            Thread tSentFile = null;
-            var ips = NodeManager.IPs;
-            for (int i = 0; i < ips.Count; i++)
+            Jobs.Enqueue(new Job { Path = path, Cmd = cmd, PathType = type });
+
+            //var ip = string.Empty;
+            //LanSocket socketConnet = null;
+            //FileDispatcher fileDispatcher = null;
+            //Thread tConnection = null;
+            //Thread tSentFile = null;
+            //var ips = NodeManager.IPs;
+            //for (int i = 0; i < ips.Count; i++)
+            //{
+            //    ip = ips[i];
+            //    if (ip == selfIP.ToString()) continue;
+
+            //    //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
+            //    socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            //    //设置服务器IP地址和端口
+            //    ipSent = new IPEndPoint(IPAddress.Parse(ip), Protocol.RECEIVE_MSG_PORT);
+
+            //    //与服务器进行连接
+            //    socketConnet = new LanSocket(socketSent, ipSent);
+            //    tConnection = new Thread(new ThreadStart(socketConnet.Connect));
+            //    tConnection.Start();
+            //    Thread.Sleep(100);
+
+            //    //将要发送的文件加上"DAT"标识符
+            //    fileDispatcher = new FileDispatcher(sourceDir, path, socketSent, cmd, type);
+            //    tSentFile = new Thread(new ThreadStart(fileDispatcher.Sent));
+            //    tSentFile.Start();
+            //}
+        }
+
+        private static void RunJob()
+        {
+            var job = new Job();
+            while (true)
             {
-                ip = ips[i];
-                if (ip == selfIP.ToString()) continue;
+                if (Jobs.TryDequeue(out job))
+                {
+                    var ip = string.Empty;
+                    LanSocket socketConnet = null;
+                    FileDispatcher fileDispatcher = null;
+                    Thread tConnection = null;
+                    Thread tSentFile = null;
+                    var ips = NodeManager.IPs.Where(x => x != selfIP.ToString()).ToList();
+                    var count = ips.Count;
+                    var tasks = new Task[count];
+                    for (var i = 0; i < count; i++)
+                    {
+                        ip = ips[i];
+                        tasks[i] = Task.Factory.StartNew(() =>
+                        {
 
-                //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
-                socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                            //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
+                            socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                //设置服务器IP地址和端口
-                ipSent = new IPEndPoint(IPAddress.Parse(ip), Protocol.RECEIVE_MSG_PORT);
+                            //设置服务器IP地址和端口
+                            ipSent = new IPEndPoint(IPAddress.Parse(ip), Protocol.RECEIVE_MSG_PORT);
 
-                //与服务器进行连接
-                socketConnet = new LanSocket(socketSent, ipSent);
-                tConnection = new Thread(new ThreadStart(socketConnet.Connect));
-                tConnection.Start();
-                Thread.Sleep(100);
+                            //与服务器进行连接
+                            socketConnet = new LanSocket(socketSent, ipSent);
+                            tConnection = new Thread(new ThreadStart(socketConnet.Connect));
+                            tConnection.Start();
+                            Thread.Sleep(100);
 
-                //将要发送的文件加上"DAT"标识符
-                fileDispatcher = new FileDispatcher(sourceDir, path, socketSent, cmd, type);
-                tSentFile = new Thread(new ThreadStart(fileDispatcher.Sent));
-                tSentFile.Start();
+                            //将要发送的文件加上"DAT"标识符
+                            fileDispatcher = new FileDispatcher(sourceDir, job.Path, socketSent, job.Cmd, job.PathType);
+                            tSentFile = new Thread(new ThreadStart(fileDispatcher.Sent));
+                            tSentFile.Start();
+                        });
+                    }
+                    Task.WaitAll(tasks);
+                }
             }
         }
 

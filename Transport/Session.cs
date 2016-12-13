@@ -74,7 +74,7 @@ namespace Aaf.Sinc.Transport
                             var pathType = Protocol.GetPathType(fileName);
                             if (Protocol.PATH_TYPE_DIR== pathType)
                             {
-                                Directory.Delete(fileName);
+                                Directory.Delete(fileName,true);
                             }
                             else if (Protocol.PATH_TYPE_FILE==pathType)
                             {

@@ -32,10 +32,25 @@ namespace Aaf.Sinc.Transport
 
     public class Node
     {
+        /// <summary>
+        /// 主机名
+        /// </summary>
         public string ComputerName { get; set; }
+        /// <summary>
+        /// IP
+        /// </summary>
         public string IP { get; set; }
+        /// <summary>
+        /// 自定义名
+        /// </summary>
         public string Name { get; set; }
+        /// <summary>
+        /// 工作组
+        /// </summary>
         public string WorkGroup { get; set; }
+        /// <summary>
+        /// 在线状态
+        /// </summary>
         public bool Online { get; set; }
 
         public override string ToString()
