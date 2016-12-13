@@ -286,7 +286,7 @@ namespace Aaf.Sinc
                             socketConnet = new LanSocket(socketSent, ipSent);
                             tConnection = new Thread(new ThreadStart(socketConnet.Connect));
                             tConnection.Start();
-                            Thread.Sleep(100);
+                            Thread.Sleep(30);
 
                             //将要发送的文件加上"DAT"标识符
                             fileDispatcher = new FileDispatcher(sourceDir, job.Path, socketSent, job.Cmd, job.PathType);
@@ -295,7 +295,10 @@ namespace Aaf.Sinc
                         });
                     }
                     Task.WaitAll(tasks);
+                    "one job complete.".Verbose();
                 }
+                else
+                    Thread.Sleep(Protocol.BROADCAST_HEARTBEAT_INTERVAL);
             }
         }
 
