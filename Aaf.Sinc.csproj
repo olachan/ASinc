@@ -95,6 +95,7 @@
     <Compile Include="Transport\FileDispatcher.cs" />
     <Compile Include="Transport\UdpThread.cs" />
     <Compile Include="Utils\ConsoleExtensions.cs" />
+    <Compile Include="Utils\IgnoreHepler.cs" />
     <Compile Include="Utils\NativeMethods.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -119,7 +120,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include=".asignore" />
+    <None Include="Config\.asignore">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Content Include=".gitattributes" />
     <Content Include=".gitignore" />
     <Content Include="addto-startup.vbs">

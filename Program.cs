@@ -199,8 +199,15 @@ namespace Aaf.Sinc
             Send(e.FullPath + "," + e.OldFullPath, Protocol.REN_FILE_CMD, Protocol.GetPathType(e.OldFullPath));
         }
 
-        private static void Send(string path, string cmd = "SND", string type = "F")
+        private static void Send(string path, string cmd = Protocol.SEND_FILE_CMD, 
+            string type = Protocol.PATH_TYPE_FILE)
         {
+            if (IgnoreHepler.IsMatch(path))
+            {
+                string.Format("{} was matched by ignore rules. so syn pass.",path).Warn();
+                return;
+            }
+
             var ip = string.Empty;
             LanSocket socketConnet = null;
             FileDispatcher fileDispatcher = null;

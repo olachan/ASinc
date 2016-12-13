@@ -19,7 +19,7 @@ namespace Aaf.Sinc.Transport
         /// <param name="dir"></param>
         /// <param name="path"></param>
         /// <param name="socketSent"></param>
-        public FileDispatcher(string dir, string path, Socket socketSent, string cmd = "SND", string type = "F")
+        public FileDispatcher(string dir, string path, Socket socketSent, string cmd = Protocol.SEND_FILE_CMD, string type = Protocol.PATH_TYPE_FILE)
         {
             this.dir = dir;
             this.path = path;
@@ -47,24 +47,25 @@ namespace Aaf.Sinc.Transport
 
             //将 "msg" 转化为字节流的形式进行传送
             socketSent.Send(Encoding.Default.GetBytes(msg));
+
+            //分割文件发送
             if (Protocol.SEND_FILE_CMD == cmd)
             {
-                var attr = File.GetAttributes(path);
-                if (attr.HasFlag(FileAttributes.Directory)) return;
-                //if (!File.Exists(path)) return;
+                var pathType = Protocol.GetPathType(path);
+                if (Protocol.PATH_TYPE_FILE != pathType) { return; }
                 //定义一个读文件流
-                var read = new FileStream(path, FileMode.Open, FileAccess.Read);
-
-                //设置缓冲区为1024byte
-                var buff = new byte[Protocol.SOCKET_BUFFER_SIZE];
-                var len = 0;
-                while ((len = read.Read(buff, 0, Protocol.SOCKET_BUFFER_SIZE)) != 0)
+                using (var read = new FileStream(path, FileMode.Open, FileAccess.Read))
                 {
-                    //按实际的字节总量发送信息
-                    socketSent.Send(buff, 0, len, SocketFlags.None);
-                }
 
-                read.Close();
+                    //设置缓冲区为1024byte
+                    var buff = new byte[Protocol.SOCKET_BUFFER_SIZE];
+                    var len = 0;
+                    while ((len = read.Read(buff, 0, Protocol.SOCKET_BUFFER_SIZE)) != 0)
+                    {
+                        //按实际的字节总量发送信息
+                        socketSent.Send(buff, 0, len, SocketFlags.None);
+                    }
+                }
 
                 //将要发送信息的最后加上"END"标识符
                 msg = Protocol.SEND_FILE_COMPLETE_CMD;
