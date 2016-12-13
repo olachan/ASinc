@@ -56,7 +56,6 @@ namespace Aaf.Sinc
         //定义是否封装
         public static string pack = "0";
 
-
         [STAThread]
         private static void Main(string[] args)
         {
@@ -172,36 +171,35 @@ namespace Aaf.Sinc
             }
         }
 
-
         private static void OnCreated(object source, FileSystemEventArgs e)
         {
             ConsoleExtensions.Time();
             string.Format("{0} was created", e.FullPath).Info();
-            Send(e.FullPath, Protocol.SEND_FILE_CMD, GetFilePathWithAttr(e.FullPath));
+            Send(e.FullPath, Protocol.SEND_FILE_CMD, Protocol.GetPathAttri(e.FullPath));
         }
 
         private static void OnChanged(object source, FileSystemEventArgs e)
         {
             ConsoleExtensions.Time();
             string.Format("{0} was changed", e.FullPath).Info();
-            Send(e.FullPath, Protocol.SEND_FILE_CMD, GetFilePathWithAttr(e.FullPath));
+            Send(e.FullPath, Protocol.SEND_FILE_CMD, Protocol.GetPathAttri(e.FullPath));
         }
 
         private static void OnDeleted(object source, FileSystemEventArgs e)
         {
             ConsoleExtensions.Time();
             string.Format("{0} was deleted", e.FullPath).Info();
-            Send(e.FullPath, Protocol.DEL_FILE_CMD, GetFilePathWithAttr(e.FullPath));
+            Send(e.FullPath, Protocol.DEL_FILE_CMD, Protocol.GetPathAttri(e.FullPath));
         }
 
         private static void OnRenamed(object source, RenamedEventArgs e)
         {
             ConsoleExtensions.Time();
             string.Format("{0} was renamed to {1}", e.OldFullPath, e.FullPath).Info();
-            Send(e.FullPath + "," + e.OldFullPath, Protocol.REN_FILE_CMD, GetFilePathWithAttr(e.OldFullPath));
+            Send(e.FullPath + "," + e.OldFullPath, Protocol.REN_FILE_CMD, Protocol.GetPathAttri(e.OldFullPath));
         }
 
-        private static void Send(string path, string cmd = "ADD",string type="|F")
+        private static void Send(string path, string cmd = "SND", string type = "F")
         {
             var ip = string.Empty;
             LanSocket socketConnet = null;
@@ -231,17 +229,6 @@ namespace Aaf.Sinc
                 tSentFile = new Thread(new ThreadStart(fileDispatcher.Sent));
                 tSentFile.Start();
             }
-        }
-
-        private static string GetFilePathWithAttr(string path)
-        {
-            if(!File.Exists(path)) return "|R";
-            var attr = File.GetAttributes(path);
-            if (attr.HasFlag(FileAttributes.Directory))
-                return "|D";
-            else
-                return "|F";
-
         }
 
         private static void notificationIcon_MouseClick(object sender, MouseEventArgs e)

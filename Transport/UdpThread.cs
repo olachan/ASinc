@@ -8,7 +8,6 @@ namespace Aaf.Sinc.Transport
 {
     internal class UdpThread
     {
-
         /// <summary>
         /// 启动udp通信线程
         /// </summary>
@@ -20,7 +19,6 @@ namespace Aaf.Sinc.Transport
             var cmd = string.Empty;
             var nodeModel = string.Empty;
             byte[] buff = null;
-            //string[] arr = null;
 
             var serializer = new JavaScriptSerializer();
 
@@ -28,44 +26,28 @@ namespace Aaf.Sinc.Transport
             {
                 buff = listener.Receive(ref ep);
                 receiveMsg = Encoding.Default.GetString(buff);
-                //receiveMsg.Verbose();
                 cmd = receiveMsg.Substring(0, 6);
                 nodeModel = receiveMsg.Substring(6);
-                if (cmd == Protocol.NODE_STATUS_CMD)
+                if (cmd != Protocol.NODE_STATUS_CMD) continue;
+                try
                 {
-                    try
+                    var node = serializer.Deserialize<Node>(nodeModel);
+
+                    if (node.Online)
                     {
-                        //arr = nodeModel.Split(':');
-                        //var node = new Node
-                        //{
-                        //    Name = arr[0],
-                        //    ComputerName = arr[1],
-                        //    IP = arr[2],
-                        //    WorkGroup = arr[3]
-                        //};
-
-                        var node = serializer.Deserialize<Node>(nodeModel);
-
-                        if (node.Online )
-                        {
-                            if (NodeManager.Add(node))
-                            {
-                                node.ToString().Info();
-
-                                string.Format("Node count:{0}", NodeManager.Count).Info();
-                            }
-                        }
-                        else{
-                            NodeManager.Remove(node);
-                            node.ToString().Info();
-                            string.Format("Node count:{0}", NodeManager.Count).Info();
-                        }
-
+                        if (!NodeManager.Add(node)) continue;
                     }
-                    catch
+                    else
                     {
-                        "one node err.".Warn();
+                        if (!NodeManager.Remove(node)) continue;
                     }
+
+                    node.ToString().Info();
+                    string.Format("Node count:{0}", NodeManager.Count).Info();
+                }
+                catch
+                {
+                    "one node err.".Warn();
                 }
             }
         }

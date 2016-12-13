@@ -1,15 +1,32 @@
-﻿using System.Linq;
+﻿using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Aaf.Sinc.Transport
 {
+
     public class Protocol
     {
         /// <summary>
         /// 默认工作组
         /// </summary>
         public const string DEFAULT_WORKGROUP = "WorkGroup";
+
+        /// <summary>
+        /// 文件
+        /// </summary>
+        public const string PATH_TYPE_FILE = "F";
+
+        /// <summary>
+        /// 目录
+        /// </summary>
+        public const string PATH_TYPE_DIR = "D";
+
+        /// <summary>
+        /// 删除
+        /// </summary>
+        public const string PATH_TYPE_RM = "R";
 
         /// <summary>
         /// 广播端口
@@ -34,7 +51,7 @@ namespace Aaf.Sinc.Transport
         /// <summary>
         /// 发送文件指令
         /// </summary>
-        public const string SEND_FILE_CMD = "ADD";
+        public const string SEND_FILE_CMD = "SND";
 
         /// <summary>
         /// 删除文件指令
@@ -72,6 +89,25 @@ namespace Aaf.Sinc.Transport
                 var host = Dns.GetHostEntry(Dns.GetHostName());
                 return host.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
             }
+        }
+
+        /// <summary>
+        /// 获取路径类型
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public static string GetPathAttri(string path)
+        {
+            if (File.Exists(path) || Directory.Exists(path))
+            {
+                var attr = File.GetAttributes(path);
+                if (attr.HasFlag(FileAttributes.Directory))
+                    return  PATH_TYPE_DIR;
+                else
+                    return  PATH_TYPE_FILE;
+            }
+            return  PATH_TYPE_RM;
+
         }
     }
 }
