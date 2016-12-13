@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Aaf.Sinc.Utils;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Aaf.Sinc.Transport
@@ -16,6 +17,7 @@ namespace Aaf.Sinc.Transport
 
         public void Connect()
         {
+            "Lan Socket connect.".Verbose();
             socketSent.Connect(ipSent);
         }
     }

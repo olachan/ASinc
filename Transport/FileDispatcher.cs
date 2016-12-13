@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using Aaf.Sinc.Utils;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -77,7 +78,7 @@ namespace Aaf.Sinc.Transport
             }
 
             socketSent.Close();
-
+            "send data complete.".Verbose();
         }
     }
 }
