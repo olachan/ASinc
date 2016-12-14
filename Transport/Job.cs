@@ -13,5 +13,10 @@ namespace Aaf.Sinc.Transport
         public string Cmd { get; set; }
         public string Path { get; set; }
         public string PathType { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("Cmd:{0},Path:{1},PathType:{2}",Cmd,Path,PathType);
+        }
     }
 }

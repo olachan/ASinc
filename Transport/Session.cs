@@ -1,4 +1,5 @@
 ﻿using Aaf.Sinc.Utils;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -122,17 +123,25 @@ namespace Aaf.Sinc.Transport
         /// <param name="msg">命令消息</param>
         private void Receive(IPEndPoint ep, byte[] buff, ref int len, ref string msg)
         {
-            using (var writer = new FileStream(fileName, FileMode.Create, FileAccess.Write))
+            try
             {
-                while ((len = chat.Receive(buff)) != 0)
+                using (var writer = new FileStream(fileName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
                 {
-                    msg = Encoding.Default.GetString(buff, 0, len);
-                    if (msg == Protocol.SEND_FILE_COMPLETE_CMD)
+                    while ((len = chat.Receive(buff)) != 0)
                     {
-                        break;
+                        msg = Encoding.Default.GetString(buff, 0, len);
+                        if (msg == Protocol.SEND_FILE_COMPLETE_CMD)
+                        {
+                            break;
+                        }
+                        writer.Write(buff, 0, len);
                     }
-                    writer.Write(buff, 0, len);
+                    writer.Close();
                 }
+            }
+            catch(Exception e)
+            {
+                e.Message.Error();
             }
         }
     }

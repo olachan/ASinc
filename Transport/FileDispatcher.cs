@@ -56,7 +56,7 @@ namespace Aaf.Sinc.Transport
                 var pathType = Protocol.GetPathType(path);
                 if (Protocol.PATH_TYPE_FILE != pathType) { return; }
                 //定义一个读文件流
-                using (var read = new FileStream(path, FileMode.Open, FileAccess.Read))
+                using (var read = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
                 {
 
                     //设置缓冲区为1024byte
@@ -67,8 +67,9 @@ namespace Aaf.Sinc.Transport
                         //按实际的字节总量发送信息
                         socketSent.Send(buff, 0, len, SocketFlags.None);
                     }
+                    read.Close();
                 }
-
+                string.Format("snd [{0}] complete.",path).Verbose();
                 //将要发送信息的最后加上"END"标识符
                 msg = Protocol.SEND_FILE_COMPLETE_CMD;
 
@@ -78,7 +79,7 @@ namespace Aaf.Sinc.Transport
             }
 
             socketSent.Close();
-            "send data complete.".Verbose();
+            
         }
     }
 }
