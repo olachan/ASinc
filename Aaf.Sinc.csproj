@@ -88,6 +88,7 @@
     <Compile Include="SharpConfig\SettingArrayEnumerator.cs" />
     <Compile Include="SharpConfig\SettingValueCastException.cs" />
     <Compile Include="Transport\Job.cs" />
+    <Compile Include="Transport\Node.cs" />
     <Compile Include="Transport\Session.cs" />
     <Compile Include="Transport\Broadcast.cs" />
     <Compile Include="Transport\LanSocket.cs" />

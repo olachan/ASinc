@@ -21,7 +21,7 @@ namespace Aaf.Sinc.Transport
             var serializer = new JavaScriptSerializer();
             var node = string.Format("{0}{1}", Protocol.NODE_STATUS_CMD, serializer.Serialize(new Node
             {
-                Name = Dns.GetHostName(),
+                Alias = Dns.GetHostName(),
                 ComputerName = Dns.GetHostName(),
                 IP = Protocol.LocalIP.ToString(),
                 WorkGroup = Protocol.DEFAULT_WORKGROUP,
@@ -38,7 +38,7 @@ namespace Aaf.Sinc.Transport
 
             node = string.Format("{0}{1}", Protocol.NODE_STATUS_CMD, serializer.Serialize(new Node
             {
-                Name = Dns.GetHostName(),
+                Alias = Dns.GetHostName(),
                 ComputerName = Dns.GetHostName(),
                 IP = Protocol.LocalIP.ToString(),
                 WorkGroup = Protocol.DEFAULT_WORKGROUP,
