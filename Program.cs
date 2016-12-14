@@ -1,6 +1,7 @@
 ﻿using Aaf.Sinc.SharpConfig;
 using Aaf.Sinc.Transport;
 using Aaf.Sinc.Utils;
+using NetFwTypeLib;
 using System;
 using System.Collections.Concurrent;
 using System.Drawing;
@@ -92,6 +93,8 @@ namespace Aaf.Sinc
             NativeMethods.handler += new NativeMethods.AppEventHandler(NativeMethods.Handler);
             NativeMethods.SetConsoleCtrlHandler(NativeMethods.handler, true);
             "CTRL-C to stop service.".Warn();
+
+            //SetFirewall();
 
             Init();
 
@@ -230,34 +233,7 @@ namespace Aaf.Sinc
 
             Jobs.Enqueue(new Job { Path = path, Cmd = cmd, PathType = type });
 
-            //var ip = string.Empty;
-            //LanSocket socketConnet = null;
-            //FileDispatcher fileDispatcher = null;
-            //Thread tConnection = null;
-            //Thread tSentFile = null;
-            //var ips = NodeManager.IPs;
-            //for (int i = 0; i < ips.Count; i++)
-            //{
-            //    ip = ips[i];
-            //    if (ip == selfIP.ToString()) continue;
-
-            //    //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
-            //    socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-            //    //设置服务器IP地址和端口
-            //    ipSent = new IPEndPoint(IPAddress.Parse(ip), Protocol.RECEIVE_MSG_PORT);
-
-            //    //与服务器进行连接
-            //    socketConnet = new LanSocket(socketSent, ipSent);
-            //    tConnection = new Thread(new ThreadStart(socketConnet.Connect));
-            //    tConnection.Start();
-            //    Thread.Sleep(100);
-
-            //    //将要发送的文件加上"DAT"标识符
-            //    fileDispatcher = new FileDispatcher(sourceDir, path, socketSent, cmd, type);
-            //    tSentFile = new Thread(new ThreadStart(fileDispatcher.Sent));
-            //    tSentFile.Start();
-            //}
+           
         }
 
         private static void RunJob()
@@ -339,6 +315,42 @@ namespace Aaf.Sinc
             notificationIcon.Visible = false;
             Application.Exit();
             Environment.Exit(1);
+        }
+
+        static void SetFirewall()
+        {
+            Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
+            INetFwPolicy2 fwPolicy2 = (INetFwPolicy2)Activator.CreateInstance(tNetFwPolicy2);
+            var currentProfiles = fwPolicy2.CurrentProfileTypes;
+
+            // create a new rule
+            INetFwRule2 inboundTCPRule = (INetFwRule2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
+            inboundTCPRule.Enabled = true;
+            //Allow through firewall
+            inboundTCPRule.Action = NET_FW_ACTION_.NET_FW_ACTION_ALLOW;
+            //Using protocol TCP
+            inboundTCPRule.Protocol = (int)NET_FW_IP_PROTOCOL_.NET_FW_IP_PROTOCOL_TCP; 
+                                    
+            inboundTCPRule.LocalPorts = "9528";
+            inboundTCPRule.Name = "ASinc(9528)";
+            inboundTCPRule.Profiles = currentProfiles;
+
+            // create a new rule
+            INetFwRule2 inboundUDPRule = (INetFwRule2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
+            inboundUDPRule.Enabled = true;
+            //Allow through firewall
+            inboundUDPRule.Action = NET_FW_ACTION_.NET_FW_ACTION_ALLOW;
+            //Using protocol UDP
+            inboundUDPRule.Protocol = (int)NET_FW_IP_PROTOCOL_.NET_FW_IP_PROTOCOL_UDP; ;
+
+            inboundUDPRule.LocalPorts = "9527";
+            inboundUDPRule.Name = "ASinc(9527)";
+            inboundUDPRule.Profiles = currentProfiles;
+
+            // Now add the rule
+            INetFwPolicy2 firewallPolicy = (INetFwPolicy2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
+            firewallPolicy.Rules.Add(inboundTCPRule);
+            firewallPolicy.Rules.Add(inboundUDPRule);
         }
     }
 }
