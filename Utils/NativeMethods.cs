@@ -37,7 +37,7 @@ namespace Aaf.Sinc.Utils
         internal static bool Handler(CtrlType sig)
         {
             Broadcast.Online = false;
-            Thread.Sleep(3000);
+            //Thread.Sleep(2000);
             Console.WriteLine("Exiting system due to external CTRL-C, or process kill, or shutdown");
             MessageBox.Show("U are stopping service.", "Warning", MessageBoxButtons.OK);
             Environment.Exit(-1);

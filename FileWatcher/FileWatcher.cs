@@ -138,7 +138,7 @@ namespace Aaf.Sinc
 
             lock (hstbWather)
             {
-                hstbWather.Add(e.FullPath, e);
+                if (!hstbWather.ContainsKey(e.FullPath)) hstbWather.Add(e.FullPath, e);
             }
             WatcherProcess watcherProcess = new WatcherProcess(sender, e);
             watcherProcess.OnCompleted += new Completed(WatcherProcess_OnCompleted);
@@ -156,7 +156,7 @@ namespace Aaf.Sinc
         {
             lock (hstbWather)
             {
-                hstbWather.Remove(key);
+                if (hstbWather.ContainsKey(key)) hstbWather.Remove(key);
             }
         }
     }

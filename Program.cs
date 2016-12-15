@@ -57,11 +57,6 @@ namespace Aaf.Sinc
         /// </summary>
         public static IPEndPoint ipSent = null;
 
-        /// <summary>
-        /// 定义接受信息的套接字
-        /// </summary>
-        public static Socket chat = null;
-
         [STAThread]
         private static void Main(string[] args)
         {
@@ -106,6 +101,7 @@ namespace Aaf.Sinc
         /// </summary>
         private static void Init()
         {
+            selfIP = Protocol.LocalIP;
             var cfg = Configuration.LoadFromFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, PARAMS_CONFIG_FILE));
             sourceDir = cfg["General"]["SourceDir"].StringValue;
             if (string.IsNullOrEmpty(sourceDir) || sourceDir == ".") sourceDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -122,32 +118,34 @@ namespace Aaf.Sinc
                 fileWatcher.OnDeleted += new FileSystemEventHandler(OnDeleted);
                 fileWatcher.Start();
 
-                var jobThread = new Thread(() =>
-                  {
-                      RunJob();
-                  });
-
-                jobThread.Start();
+                Task.Factory.StartNew(() =>
+                {
+                    "FileWatcher thread start.".Verbose();
+                    RunJob();
+                });
+                
             }
             else
             {
                 "Current node is Salve.".Verbose();
             }
-            selfIP = Protocol.LocalIP;
 
-            var startUdpThread = new UdpThread();
-            var tUdpThread = new Thread(new ThreadStart(startUdpThread.Start));
-            tUdpThread.IsBackground = true;
-            tUdpThread.Start();
+            Task.Factory.StartNew(() =>
+            {
+                "UDP receive thread start.".Verbose();
+                new UdpThread().Start();
+            });
 
-            var broadCast = new Broadcast();
-            var tBroadCast = new Thread(new ThreadStart(broadCast.Send));
-            tBroadCast.IsBackground = true;
-            tBroadCast.Start();
+            Task.Factory.StartNew(()=> {
+                "UDP broadcast thread start.".Verbose();
+                new Broadcast().Send();
+            });
 
-            var receive = new Thread(new ThreadStart(Receive));
-            receive.IsBackground = true;
-            receive.Start();
+            Task.Factory.StartNew(() =>
+            {
+                "TCP receive thread start.".Verbose();
+                Receive();
+            });
         }
 
         /// <summary>
@@ -182,15 +180,11 @@ namespace Aaf.Sinc
             {
                 //定义一个chat套接字用来接受信息
                 var chat = socketReceive.Accept();
-
-                //定义一个处理信息的对象
-                var cs = new Session(chat, sourceDir);
-
-                //定义一个新的线程用来接受其他主机发送的信息
-                var newThread = new Thread(new ThreadStart(cs.Start));
-
-                //启动新的线程
-                newThread.Start();
+                Task.Factory.StartNew(s =>
+                {
+                    //接受其他主机发送的信息
+                    new Session((Socket)s, sourceDir).Start();
+                }, chat);
             }
         }
 
@@ -232,8 +226,6 @@ namespace Aaf.Sinc
             }
 
             Jobs.Enqueue(new Job { Path = path, Cmd = cmd, PathType = type });
-
-           
         }
 
         private static void RunJob()
@@ -241,10 +233,10 @@ namespace Aaf.Sinc
             var job = new Job();
             while (true)
             {
+                var ips = NodeManager.IPs.Where(x => x != selfIP.ToString()).ToList();
+                var count = ips.Count;
                 if (Jobs.TryDequeue(out job))
                 {
-                    var ips = NodeManager.IPs.Where(x => x != selfIP.ToString()).ToList();
-                    var count = ips.Count;
                     //var tasks = new Task[count];
                     for (var i = 0; i < count; i++)
                     {
@@ -289,7 +281,6 @@ namespace Aaf.Sinc
                             new FileDispatcher(sourceDir,
                                 job.Path, socketSent,
                                 job.Cmd, job.PathType).Sent();
-
                         }, ips[i]);
                         Task.WaitAll(task);
                     }
@@ -317,26 +308,29 @@ namespace Aaf.Sinc
             Environment.Exit(1);
         }
 
-        static void SetFirewall()
+        private static void SetFirewall()
         {
+            Type fwRule = Type.GetTypeFromProgID("HNetCfg.FWRule");
             Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
             INetFwPolicy2 fwPolicy2 = (INetFwPolicy2)Activator.CreateInstance(tNetFwPolicy2);
-            var currentProfiles = fwPolicy2.CurrentProfileTypes;
+
+            foreach (INetFwRule rule in fwPolicy2.Rules)
+                if (rule.Name == "ASinc") return;
 
             // create a new rule
-            INetFwRule2 inboundTCPRule = (INetFwRule2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
+            INetFwRule2 inboundTCPRule = (INetFwRule2)Activator.CreateInstance(fwRule);
             inboundTCPRule.Enabled = true;
             //Allow through firewall
             inboundTCPRule.Action = NET_FW_ACTION_.NET_FW_ACTION_ALLOW;
             //Using protocol TCP
-            inboundTCPRule.Protocol = (int)NET_FW_IP_PROTOCOL_.NET_FW_IP_PROTOCOL_TCP; 
-                                    
+            inboundTCPRule.Protocol = (int)NET_FW_IP_PROTOCOL_.NET_FW_IP_PROTOCOL_TCP;
+
             inboundTCPRule.LocalPorts = "9528";
-            inboundTCPRule.Name = "ASinc(9528)";
-            inboundTCPRule.Profiles = currentProfiles;
+            inboundTCPRule.Name = "ASinc";
+            inboundTCPRule.Profiles = fwPolicy2.CurrentProfileTypes;
 
             // create a new rule
-            INetFwRule2 inboundUDPRule = (INetFwRule2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FWRule"));
+            INetFwRule2 inboundUDPRule = (INetFwRule2)Activator.CreateInstance(fwRule);
             inboundUDPRule.Enabled = true;
             //Allow through firewall
             inboundUDPRule.Action = NET_FW_ACTION_.NET_FW_ACTION_ALLOW;
@@ -344,13 +338,13 @@ namespace Aaf.Sinc
             inboundUDPRule.Protocol = (int)NET_FW_IP_PROTOCOL_.NET_FW_IP_PROTOCOL_UDP; ;
 
             inboundUDPRule.LocalPorts = "9527";
-            inboundUDPRule.Name = "ASinc(9527)";
-            inboundUDPRule.Profiles = currentProfiles;
+            inboundUDPRule.Name = "ASinc";
+            inboundUDPRule.Profiles = fwPolicy2.CurrentProfileTypes;
 
-            // Now add the rule
-            INetFwPolicy2 firewallPolicy = (INetFwPolicy2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
-            firewallPolicy.Rules.Add(inboundTCPRule);
-            firewallPolicy.Rules.Add(inboundUDPRule);
+            // add the rule
+
+            fwPolicy2.Rules.Add(inboundTCPRule);
+            fwPolicy2.Rules.Add(inboundUDPRule);
         }
     }
 }
