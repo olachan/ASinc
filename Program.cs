@@ -47,16 +47,6 @@ namespace Aaf.Sinc
         /// </summary>
         public static IPEndPoint ipReceive = null;
 
-        /// <summary>
-        /// 定义作为客户端发送信息套接字
-        /// </summary>
-        public static Socket socketSent = null;
-
-        /// <summary>
-        /// 定义发送信息的IP地址和端口号
-        /// </summary>
-        public static IPEndPoint ipSent = null;
-
         [STAThread]
         private static void Main(string[] args)
         {
@@ -123,7 +113,6 @@ namespace Aaf.Sinc
                     "FileWatcher thread start.".Verbose();
                     RunJob();
                 });
-                
             }
             else
             {
@@ -136,7 +125,8 @@ namespace Aaf.Sinc
                 new UdpThread().Start();
             });
 
-            Task.Factory.StartNew(()=> {
+            Task.Factory.StartNew(() =>
+            {
                 "UDP broadcast thread start.".Verbose();
                 new Broadcast().Send();
             });
@@ -221,7 +211,7 @@ namespace Aaf.Sinc
         {
             if (IgnoreHepler.IsMatch(path))
             {
-                string.Format("{0} was matched by ignore rules. so syn pass.", path).Warn();
+                string.Format("{0} was matched by ignore rules. so passed.", path).Warn();
                 return;
             }
 
@@ -240,49 +230,32 @@ namespace Aaf.Sinc
                     //var tasks = new Task[count];
                     for (var i = 0; i < count; i++)
                     {
-                        ////初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
-                        //socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        Task.Factory.StartNew(ip =>
+                          {
+                              string.Format("send data to {0}", ip).Verbose();
 
-                        ////设置服务器IP地址和端口
-                        //ipSent = new IPEndPoint(IPAddress.Parse(ips[i]), Protocol.RECEIVE_MSG_PORT);
+                              //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
+                              var socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                        ////与服务器进行连接
-                        //new LanSocket(socketSent, ipSent).Connect();
+                              //设置服务器IP地址和端口
+                              var ipSent = new IPEndPoint(IPAddress.Parse((string)ip), Protocol.RECEIVE_MSG_PORT);
 
-                        ////var socketConnet = new LanSocket(socketSent, ipSent);
-                        ////var tConnection = new Thread(new ThreadStart(socketConnet.Connect));
-                        ////tConnection.Start();
+                              ////与服务器进行连接
+                              new LanSocket(socketSent, ipSent).Connect();
 
-                        //Thread.Sleep(90);
+                              //var socketConnet = new LanSocket(socketSent, ipSent);
+                              //var tConnection = new Thread(new ThreadStart(socketConnet.Connect));
+                              //tConnection.Start();
 
-                        ////发送文件
-                        //new FileDispatcher(sourceDir,
-                        //    job.Path, socketSent,
-                        //    job.Cmd, job.PathType).Sent();
+                              Thread.Sleep(90);
 
-                        var task = Task.Factory.StartNew(ip =>
-                        {
-                            //初始化接受套接字: 寻址方案, 以字符流方式和Tcp通信
-                            socketSent = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-                            //设置服务器IP地址和端口
-                            ipSent = new IPEndPoint(IPAddress.Parse((string)ip), Protocol.RECEIVE_MSG_PORT);
-
-                            //与服务器进行连接
-                            new LanSocket(socketSent, ipSent).Connect();
-
-                            //var socketConnet = new LanSocket(socketSent, ipSent);
-                            //var tConnection = new Thread(new ThreadStart(socketConnet.Connect));
-                            //tConnection.Start();
-
-                            Thread.Sleep(90);
-
-                            //发送文件
-                            new FileDispatcher(sourceDir,
-                                job.Path, socketSent,
-                                job.Cmd, job.PathType).Sent();
-                        }, ips[i]);
-                        Task.WaitAll(task);
+                              "Lan socket connected.".Verbose();
+                              //发送文件
+                              new FileDispatcher(sourceDir,
+                                    job.Path, socketSent,
+                                    job.Cmd, job.PathType).Sent();
+                          }, ips[i]).Wait();
+                        //Task.WaitAll(task);
                     }
                     string.Format("job [{0}] complete.", job).Verbose();
                 }

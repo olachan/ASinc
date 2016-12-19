@@ -17,7 +17,6 @@ namespace Aaf.Sinc.Transport
 
         public void Connect()
         {
-            //"Lan Socket connect.".Verbose();
             socketSent.Connect(ipSent);
         }
     }
